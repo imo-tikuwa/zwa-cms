@@ -171,7 +171,7 @@ impl SyntaxHighlighterAdapter for Highlighter {
 mod tests {
     use super::*;
 
-    /// The names listed in README.md / README_ja.md (syntax highlighting) and accepted by the editor
+    /// The names listed in docs/writing.md (syntax highlighting) and accepted by the editor
     /// (src/lib/codeLanguages.ts).
     pub const DOCUMENTED: &[&str] = &[
         "bash", "sh", "shell", "zsh", "console", "c", "cpp", "c++", "csharp", "cs", "css", "scss", "diff",
