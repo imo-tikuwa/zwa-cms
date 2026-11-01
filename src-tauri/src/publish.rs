@@ -44,7 +44,19 @@ pub async fn site_publish(app: AppHandle) -> Result<PublishResult> {
 }
 
 async fn publish(app: &AppHandle) -> Result<PublishResult> {
+    use zwa_core::publish_lock::{Holder, PublishLock};
     let db = Db::open(app)?;
+    let lock = PublishLock::acquire(&db.d1(), Holder::App)
+        .await?
+        .map_err(|busy| crate::error::Error::Invalid(busy.message()))?;
+    let result = publish_locked(app, &db).await;
+    if let Err(e) = lock.release(&db.d1()).await {
+        log::warn!("publish: could not release the lock (it expires on its own): {e}");
+    }
+    result
+}
+
+async fn publish_locked(app: &AppHandle, db: &Db) -> Result<PublishResult> {
     let account = db.site.account_id.clone();
     let worker = db.site.worker_name.clone();
     let workers_dev = zwa_core::deploy::workers_dev_url(&db.client, &account, &worker).await?;
@@ -60,13 +72,13 @@ async fn publish(app: &AppHandle) -> Result<PublishResult> {
     let auth = zwa_core::basic_auth::load(&db.d1()).await?;
     let options = BuildOptions {
         base_url: site_url.is_none().then(|| workers_dev.clone()),
-        theme_files: crate::theme::load_files(app, &db, false).await?,
+        theme_files: crate::theme::load_files(app, db, false).await?,
         ..Default::default()
     };
     // Before the data is read, so edits saved during the upload stay "not reflected".
     let snapshot_at = db.d1().now().await?;
     log::info!("publish: building {worker} for {}", site_url.as_deref().unwrap_or(&workers_dev));
-    let build = build_to_dir(app, &db, "publish", &options).await?;
+    let build = build_to_dir(app, db, "publish", &options).await?;
     for w in &build.warnings {
         log::warn!("publish: {w}");
     }
@@ -135,8 +147,12 @@ pub async fn publish_status(app: AppHandle) -> Result<PublishStatus> {
         && db
             .rows::<Count>(
                 "SELECT COUNT(*) AS n FROM settings
-                  WHERE updated_at > ?1 AND key <> ?2 AND key NOT LIKE 'ai.%' AND key NOT LIKE 'github.%'",
-                &[at, serde_json::json!(zwa_core::d1::PUBLISHED_AT)],
+                  WHERE updated_at > ?1 AND key NOT IN (?2, ?3) AND key NOT LIKE 'ai.%' AND key NOT LIKE 'github.%'",
+                &[
+                    at,
+                    serde_json::json!(zwa_core::d1::PUBLISHED_AT),
+                    serde_json::json!(zwa_core::publish_lock::KEY),
+                ],
             )
             .await?
             .first()

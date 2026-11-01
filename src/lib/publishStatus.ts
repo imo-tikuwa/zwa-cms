@@ -17,7 +17,8 @@ export const publishStatus = () => invoke<PublishStatus>("publish_status");
  * site; it is on the site after the next "サイトに公開".
  * - draft: not on the site
  * - scheduled: published, but its date is in the future
- * - pending: published and saved since the site was last published
+ * - pending: published and saved since the site was last published, or its
+ *   date came after that (a scheduled post that became due)
  * - live: on the site as saved
  */
 export type PostState = "draft" | "scheduled" | "pending" | "live";
@@ -29,6 +30,8 @@ export function postState(
   if (p.status === "draft") return "draft";
   if (p.published_at && p.published_at > new Date().toISOString().replace(/\.\d{3}Z$/, "Z")) return "scheduled";
   if (!status) return "live";
+  // Became due after `status` was read, so its pending list can't have it yet.
+  if (status.published_at && p.published_at && p.published_at > status.published_at) return "pending";
   return status.pending.some((x) => x.id === p.id) ? "pending" : "live";
 }
 
@@ -64,9 +67,13 @@ export function usePublishStatus() {
         .catch(() => {});
     load();
     const off = onPublishStatusChange(load);
+    // Scheduled posts become due, and GitHub Actions publishes, without
+    // anything happening in this window.
+    const timer = window.setInterval(load, 60_000);
     return () => {
       alive = false;
       off();
+      window.clearInterval(timer);
     };
   }, []);
   return status;

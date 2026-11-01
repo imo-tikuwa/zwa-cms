@@ -203,36 +203,68 @@ async fn run(args: Args) -> Result<()> {
                 account_id: &account,
                 database_id: &site.database_id,
             };
-            let site_url = d1
-                .setting(zwa_site::keys::URL)
-                .await?
-                .filter(|u| !u.is_empty());
-            let hosts = zwa_core::turnstile::hosts(&workers_dev, site_url.as_deref());
-            let forms = zwa_core::turnstile::backend(&client, &d1, &hosts).await?;
-            let auth = zwa_core::basic_auth::load(&d1).await?;
-            let options = BuildOptions {
-                base_url: site_url.is_none().then(|| workers_dev.clone()),
-                ..Default::default()
-            };
-            let snapshot_at = d1.now().await?;
-            build(&client, &account, &site, &args.out, options).await?;
-            let summary = zwa_core::deploy::deploy_dir(
-                &client,
-                &account,
-                &site.worker_name,
-                &args.out,
-                forms.as_ref(),
-                auth.as_ref(),
-            )
-            .await?;
-            d1.mark_published(&snapshot_at).await?;
-            println!(
-                "公開しました: {workers_dev}/（{} ファイル、うち {} 件を送信）",
-                summary.files, summary.uploaded
-            );
+            let lock = wait_for_lock(&d1).await?;
+            let result = async {
+                let site_url = d1
+                    .setting(zwa_site::keys::URL)
+                    .await?
+                    .filter(|u| !u.is_empty());
+                let hosts = zwa_core::turnstile::hosts(&workers_dev, site_url.as_deref());
+                let forms = zwa_core::turnstile::backend(&client, &d1, &hosts).await?;
+                let auth = zwa_core::basic_auth::load(&d1).await?;
+                let options = BuildOptions {
+                    base_url: site_url.is_none().then(|| workers_dev.clone()),
+                    ..Default::default()
+                };
+                let snapshot_at = d1.now().await?;
+                build(&client, &account, &site, &args.out, options).await?;
+                let summary = zwa_core::deploy::deploy_dir(
+                    &client,
+                    &account,
+                    &site.worker_name,
+                    &args.out,
+                    forms.as_ref(),
+                    auth.as_ref(),
+                )
+                .await?;
+                d1.mark_published(&snapshot_at).await?;
+                println!(
+                    "公開しました: {workers_dev}/（{} ファイル、うち {} 件を送信）",
+                    summary.files, summary.uploaded
+                );
+                Ok::<(), zwa_core::Error>(())
+            }
+            .await;
+            if let Err(e) = lock.release(&d1).await {
+                eprintln!(
+                    "公開中の印を消せませんでした（{} 分で自動的に無効になります）: {e}",
+                    zwa_core::publish_lock::LEASE_MINUTES
+                );
+            }
+            result?;
         }
     }
     Ok(())
+}
+
+/// Waits while the app (or another run) is publishing. A stale lock is
+/// taken over after `LEASE_MINUTES`, so this ends by then.
+async fn wait_for_lock(d1: &D1<'_>) -> Result<zwa_core::publish_lock::PublishLock> {
+    use zwa_core::publish_lock::{Holder, PublishLock};
+    let by = if std::env::var_os("GITHUB_ACTIONS").is_some() {
+        Holder::GithubActions
+    } else {
+        Holder::Cli
+    };
+    loop {
+        match PublishLock::acquire(d1, by).await? {
+            Ok(lock) => return Ok(lock),
+            Err(busy) => {
+                println!("{} 30 秒後に確認します。", busy.message());
+                tokio::time::sleep(std::time::Duration::from_secs(30)).await;
+            }
+        }
+    }
 }
 
 #[tokio::main]

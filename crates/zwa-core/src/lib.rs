@@ -7,6 +7,7 @@ pub mod d1;
 pub mod deploy;
 pub mod error;
 pub mod images;
+pub mod publish_lock;
 pub mod theme;
 pub mod turnstile;
 
