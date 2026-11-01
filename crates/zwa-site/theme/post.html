@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}{{ post.title }} | {{ site.title }}{% endblock %}
+{% block meta %}
+  {%- if post.description %}
+  <meta name="description" content="{{ post.description }}">
+  {%- endif %}
+  <meta property="og:type" content="article">
+  {%- if post.author %}
+  <meta name="author" content="{{ post.author.name }}">
+  {%- endif %}
+  <meta property="og:title" content="{{ post.title }}">
+  {%- if post.description %}
+  <meta property="og:description" content="{{ post.description }}">
+  {%- endif %}
+{%- endblock %}
+{% block content %}
+<article class="entry" data-pagefind-body>
+  <header class="entry-header">
+    {%- if post.categories %}
+    <p class="chips">
+      {%- for c in post.categories %}<a class="chip" href="{{ c.url | url }}">{{ c.title }}</a>{% endfor %}
+    </p>
+    {%- endif %}
+    <h1>{{ post.title }}{% if post.draft %} <span class="draft">下書き</span>{% endif %}</h1>
+    <p class="meta">
+      {%- if post.date %}<time datetime="{{ post.datetime }}" data-pagefind-meta="date">{{ post.date }}</time>{% endif %}
+      {%- if post.author %} <a class="author" href="{{ post.author.url | url }}">{{ post.author.name }}</a>{% endif %}
+    </p>
+  </header>
+  {%- if post.image %}
+  <img class="entry-image" src="{{ post.image.src | url }}" alt="{{ post.image.alt }}">
+  {%- endif %}
+  <div class="content">
+    {{ post.content }}
+  </div>
+  {%- if post.tags %}
+  <p class="tags">
+    {%- for t in post.tags %}<a class="tag" href="{{ t.url | url }}">#{{ t.title }}</a>{% endfor %}
+  </p>
+  {%- endif %}
+  {%- if post.author and post.author.bio %}
+  <aside class="author-box">
+    <span class="author-avatar" aria-hidden="true">{{ post.author.name[:1] }}</span>
+    <div>
+      <a class="author-name" href="{{ post.author.url | url }}">{{ post.author.name }}</a>
+      <p>{{ post.author.bio }}</p>
+    </div>
+  </aside>
+  {%- endif %}
+</article>
+{%- if newer or older %}
+<nav class="post-nav">
+  {%- if newer %}<a class="post-nav-newer" href="{{ newer.url | url }}"><span>新しい記事</span>{{ newer.title }}</a>{% else %}<span></span>{% endif %}
+  {%- if older %}<a class="post-nav-older" href="{{ older.url | url }}"><span>前の記事</span>{{ older.title }}</a>{% endif %}
+</nav>
+{%- endif %}
+{% endblock %}

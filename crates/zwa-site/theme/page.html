@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ page.title }} | {{ site.title }}{% endblock %}
+{% block meta %}
+  {%- if page.description %}
+  <meta name="description" content="{{ page.description }}">
+  <meta property="og:description" content="{{ page.description }}">
+  {%- endif %}
+  <meta property="og:title" content="{{ page.title }}">
+{%- endblock %}
+{% block content %}
+{%- if breadcrumbs %}
+<nav class="breadcrumbs">
+  <a href="/">ホーム</a>
+  {%- for b in breadcrumbs %} › <a href="{{ b.url | url }}">{{ b.title }}</a>{% endfor %}
+</nav>
+{%- endif %}
+<article class="entry" data-pagefind-body>
+  <header class="entry-header">
+    <h1>{{ page.title }}{% if page.draft %} <span class="draft">下書き</span>{% endif %}</h1>
+  </header>
+  {%- if page.image %}
+  <img class="entry-image" src="{{ page.image.src | url }}" alt="{{ page.image.alt }}">
+  {%- endif %}
+  <div class="content">
+    {{ page.content }}
+  </div>
+  {%- if form %}
+  <div data-pagefind-ignore>
+    {% include "form.html" %}
+  </div>
+  {%- endif %}
+</article>
+{%- if children %}
+<ul class="children">
+  {%- for c in children %}
+  <li><a href="{{ c.url | url }}">{{ c.title }}</a></li>
+  {%- endfor %}
+</ul>
+{%- endif %}
+{% endblock %}

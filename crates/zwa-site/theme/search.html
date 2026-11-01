@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}検索 | {{ site.title }}{% endblock %}
+{% block head %}
+  <link rel="stylesheet" href="/pagefind/pagefind-ui.css">
+  <script src="/pagefind/pagefind-ui.js"></script>
+{% endblock %}
+{% block content %}
+<h1 class="list-heading">検索</h1>
+<div id="search"></div>
+<script>
+  window.addEventListener("DOMContentLoaded", () => {
+    new PagefindUI({ element: "#search", showSubResults: true, translations: { placeholder: "キーワードを入力", zero_results: "「[SEARCH_TERM]」に一致する記事はありません" } });
+    const q = new URLSearchParams(location.search).get("q");
+    if (q) {
+      const input = document.querySelector("#search input");
+      input.value = q;
+      input.dispatchEvent(new Event("input"));
+    }
+  });
+</script>
+{% endblock %}

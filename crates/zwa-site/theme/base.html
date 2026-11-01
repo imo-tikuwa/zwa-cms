@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="{{ site.language }}"{% if site.color_mode != "system" %} data-theme="{{ site.color_mode }}"{% endif %} data-brightness="{{ site.brightness }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {%- if live_reload %}
+  <script>
+    // Preview only: follow the app's light/dark and brightness. With the
+    // visitor's switch it counts as the visitor's choice (until the app's
+    // changes again); without, the site's own setting stays, and only
+    // "follow the OS" takes the app's light/dark.
+    (() => {
+      try {
+        const req = new XMLHttpRequest();
+        req.open("GET", "/__zwa/appearance", false);
+        req.send();
+        const app = JSON.parse(req.responseText);
+        if (!app.mode) return;
+        const root = document.documentElement;
+        {%- if site.color_switch %}
+        if (localStorage.getItem("zwa.preview.app") !== req.responseText) {
+          localStorage.setItem("zwa.preview.app", req.responseText);
+          localStorage.setItem("zwa.colors", JSON.stringify({ mode: app.mode, brightness: String(app.brightness) }));
+        }
+        {%- else %}
+        if (!root.dataset.theme) root.dataset.theme = app.scheme;
+        {%- endif %}
+      } catch {}
+    })();
+  </script>
+  {%- endif %}
+  {%- if site.color_switch %}
+  <script>
+    // The visitor's choice from the light/dark switch, before the first paint.
+    (() => {
+      try {
+        const c = JSON.parse(localStorage.getItem("zwa.colors") || "null");
+        if (!c) return;
+        const root = document.documentElement;
+        if (c.mode === "system") delete root.dataset.theme;
+        else if (c.mode === "light" || c.mode === "dark") root.dataset.theme = c.mode;
+        if (["-1", "0", "1"].includes(c.brightness)) root.dataset.brightness = c.brightness;
+      } catch {}
+    })();
+  </script>
+  {%- endif %}
+  <title>{% block title %}{{ site.title }}{% endblock %}</title>
+  {%- block meta %}
+  {%- if site.description %}
+  <meta name="description" content="{{ site.description }}">
+  {%- endif %}
+  {%- endblock %}
+  {%- if canonical %}
+  <link rel="canonical" href="{{ canonical | url }}">
+  <meta property="og:url" content="{{ canonical | url }}">
+  {%- endif %}
+  {%- if og_image %}
+  <meta property="og:image" content="{{ og_image | url }}">
+  <meta name="twitter:card" content="summary_large_image">
+  {%- endif %}
+  {%- if site.url %}
+  <link rel="alternate" type="application/rss+xml" title="{{ site.title }}" href="/feed.xml">
+  {%- endif %}
+  {%- if site.favicon %}
+  <link rel="icon" href="{{ site.favicon | url }}">
+  {%- endif %}
+  <link rel="stylesheet" href="{{ asset("style.css") }}">
+  {%- if site.accent_color %}
+  <style>:root { --accent: {{ site.accent_color }}; }</style>
+  {%- endif %}
+  {%- if site.custom_css %}
+  <style>{{ site.custom_css }}</style>
+  {%- endif %}
+  {%- block head %}{% endblock %}
+</head>
+<body>
+  {%- if drafts %}
+  <div class="preview-banner">プレビュー（下書きを含みます）</div>
+  {%- endif %}
+  <header class="site-header">
+    <div class="container">
+      <a class="site-title" href="/">
+        {%- if site.logo %}<img class="site-logo" src="{{ site.logo | url }}" alt="">{% endif -%}
+        {{ site.title }}
+      </a>
+      <nav class="site-nav">
+        {%- for item in site.nav %}
+        <a href="{{ item.url | url }}">{{ item.title }}</a>
+        {%- endfor %}
+        {%- if site.search %}
+        <form class="site-search" action="/search/" role="search">
+          <input type="search" name="q" placeholder="サイト内を検索" aria-label="サイト内を検索">
+        </form>
+        {%- endif %}
+        {%- if site.color_switch %}
+        <details class="color-menu">
+          <summary title="表示の切り替え" aria-label="表示の切り替え">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg>
+          </summary>
+          <div class="color-menu-panel">
+            <p>表示</p>
+            <button type="button" data-mode="system">OS の設定に合わせる</button>
+            <button type="button" data-mode="light">ライト</button>
+            <button type="button" data-mode="dark">ダーク</button>
+            <hr>
+            <p>明るさ</p>
+            <button type="button" data-brightness="-1">暗め</button>
+            <button type="button" data-brightness="0">標準</button>
+            <button type="button" data-brightness="1">明るめ</button>
+          </div>
+        </details>
+        {%- endif %}
+      </nav>
+    </div>
+  </header>
+  {%- block hero %}{% endblock %}
+  <main class="container {% block main_class %}{% endblock %}">
+    {%- block content %}{% endblock %}
+  </main>
+  <footer class="site-footer">
+    <div class="container">
+      <a class="footer-title" href="/">{{ site.title }}</a>
+      {%- if site.categories %}
+      <nav class="footer-categories" aria-label="カテゴリー">
+        {%- for c in site.categories %}
+        <a href="{{ c.url | url }}">{{ c.title }}</a>
+        {%- endfor %}
+      </nav>
+      {%- endif %}
+      <p>{% if site.footer_text %}{{ site.footer_text }}{% else %}&copy; {{ site.title }}{% endif %}</p>
+    </div>
+  </footer>
+  {%- if site.color_switch %}
+  <script>
+    (() => {
+      const menu = document.querySelector(".color-menu");
+      if (!menu) return;
+      const root = document.documentElement;
+      const current = () => ({ mode: root.dataset.theme || "system", brightness: root.dataset.brightness || "0" });
+      const mark = () => {
+        const c = current();
+        menu.querySelectorAll("[data-mode]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === c.mode)));
+        menu.querySelectorAll("[data-brightness]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.brightness === c.brightness)));
+      };
+      menu.addEventListener("click", (e) => {
+        const b = e.target.closest("button");
+        if (!b) return;
+        const c = { ...current(), ...b.dataset };
+        if (c.mode === "system") delete root.dataset.theme;
+        else root.dataset.theme = c.mode;
+        root.dataset.brightness = c.brightness;
+        try { localStorage.setItem("zwa.colors", JSON.stringify(c)); } catch {}
+        mark();
+      });
+      document.addEventListener("click", (e) => { if (!menu.contains(e.target)) menu.open = false; });
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape") menu.open = false; });
+      mark();
+    })();
+  </script>
+  {%- endif %}
+  {%- if live_reload %}
+  <script>
+    // Preview only: reload when the app finishes a new build or changes
+    // its light/dark.
+    (() => {
+      const poll = async (url, last) => {
+        try {
+          const now = await (await fetch(url, { cache: "no-store" })).text();
+          if (last[0] !== null && now !== last[0]) location.reload();
+          last[0] = now;
+        } catch {}
+      };
+      const build = [null], appearance = [null];
+      setInterval(() => { poll("/__zwa/build", build); poll("/__zwa/appearance", appearance); }, 1000);
+    })();
+  </script>
+  {%- endif %}
+</body>
+</html>

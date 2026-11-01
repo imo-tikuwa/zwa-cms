@@ -1,0 +1,31 @@
+[package]
+name = "zwa-site"
+version = "0.1.0"
+description = "Static site generator for Zero Web Admin CMS"
+license = "MIT"
+edition = "2024"
+
+[features]
+# Chinese/Japanese word segmentation for the search index (Pagefind
+# extended). Pulls in large dictionaries; the desktop app enables it.
+cjk-search = ["pagefind/extended"]
+
+[dependencies]
+# Highlighting is our own adapter (highlight.rs), not comrak's syntect plugin.
+comrak = { version = "0.59.0", default-features = false }
+minijinja = { version = "3.0.3", features = ["serde"] }
+pagefind = { version = "1.5.2", default-features = false }
+percent-encoding = "2.3.2"
+regex = "1.13.1"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+sha2 = "0.11.1"
+syntect = { version = "5.3.0", default-features = false, features = ["parsing", "regex-onig"] }
+thiserror = "2.0.21"
+# pagefind needs tokio io-util when built without its "serve" feature.
+tokio = { version = "1.54.1", features = ["io-util", "fs", "rt"] }
+# bat's syntax set: syntect's defaults lack TypeScript, TOML, Dockerfile, etc.
+two-face = { version = "0.5.2", default-features = false, features = ["syntect-onig"] }
+
+[dev-dependencies]
+tokio = { version = "1.54.1", features = ["macros", "rt-multi-thread"] }

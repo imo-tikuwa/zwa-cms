@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{% if heading %}{{ heading }} | {% endif %}{{ site.title }}{% if pagination.current > 1 %}（{{ pagination.current }}ページ目）{% endif %}{% endblock %}
+{% block hero %}
+{%- if not heading and pagination.current == 1 %}
+<section class="hero">
+  <div class="container wide">
+    <p class="hero-title">{{ site.title }}</p>
+    {%- if site.description %}
+    <p class="hero-description">{{ site.description }}</p>
+    {%- endif %}
+  </div>
+</section>
+{%- endif %}
+{% endblock %}
+{% block main_class %}wide{% endblock %}
+{% block content %}
+{%- if heading %}
+<h1 class="list-heading">{{ heading }}</h1>
+{%- else %}
+<h2 class="section-heading">新着記事</h2>
+{%- endif %}
+{%- if posts %}
+<div class="cards">
+  {%- for post in posts %}
+  <article class="card">
+    {%- if post.image %}
+    <div class="card-image"><img src="{{ post.image.src | url }}" alt="" loading="lazy"></div>
+    {%- else %}
+    <div class="card-image card-image-empty" aria-hidden="true"><span>{{ post.categories[0].title if post.categories else site.title }}</span></div>
+    {%- endif %}
+    <div class="card-body">
+      {%- if post.categories %}
+      <p class="chips">
+        {%- for c in post.categories %}<a class="chip" href="{{ c.url | url }}">{{ c.title }}</a>{% endfor %}
+      </p>
+      {%- endif %}
+      <h2 class="card-title"><a href="{{ post.url | url }}">{{ post.title }}</a>{% if post.draft %} <span class="draft">下書き</span>{% endif %}</h2>
+      {%- if post.excerpt %}
+      <p class="card-excerpt">{{ post.excerpt }}</p>
+      {%- endif %}
+      {%- if post.date %}
+      <p class="meta"><time datetime="{{ post.datetime }}">{{ post.date }}</time></p>
+      {%- endif %}
+    </div>
+  </article>
+  {%- endfor %}
+</div>
+{%- else %}
+<p class="empty">記事はまだありません。</p>
+{%- endif %}
+{%- if pagination.total > 1 %}
+<nav class="pagination">
+  {%- if pagination.prev_url %}<a class="button" href="{{ pagination.prev_url | url }}">← 新しい記事</a>{% else %}<span></span>{% endif %}
+  <span class="pagination-count">{{ pagination.current }} / {{ pagination.total }}</span>
+  {%- if pagination.next_url %}<a class="button" href="{{ pagination.next_url | url }}">古い記事 →</a>{% else %}<span></span>{% endif %}
+</nav>
+{%- endif %}
+{% endblock %}

@@ -1,0 +1,12 @@
+services:
+  workspace:
+    image: mcr.microsoft.com/devcontainers/javascript-node:24-bookworm
+    init: true
+    # Required for sandboxed process execution by dev tools and Tauri builds
+    security_opt:
+      - seccomp=unconfined
+    volumes:
+      - ..:/workspaces/zwa-cms:cached
+    command: sleep infinity
+    environment:
+      TZ: Asia/Tokyo

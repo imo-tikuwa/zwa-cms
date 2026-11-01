@@ -1,0 +1,62 @@
+{#- Contact form, included by page.html when the page has one (`form`).
+    The script (zwa-form.js) relies on the data-zwa-form attribute,
+    the field names, the data-msg-* texts, the .form-status element, and
+    data-zwa-clear (shown while an optional radio group has a choice). -#}
+<form class="contact-form" method="post" action="{{ form.action | url }}" data-zwa-form
+  {%- if form.preview %} data-preview{% endif %}
+  data-msg-success="{{ form.success_message }}"
+  data-msg-sending="送信しています…"
+  data-msg-failed="送信できませんでした。時間をおいてもう一度お試しください。"
+  data-msg-preview="プレビューでは送信できません。公開したサイトでお試しください。">
+  {%- for f in form.fields %}
+  {%- if f.type == "checkbox" %}
+  <label class="form-check">
+    <input type="checkbox" name="{{ f.name }}"{% if f.required %} required{% endif %}>
+    {{ f.label }}{% if f.required %} <span class="form-required">必須</span>{% endif %}
+  </label>
+  {%- elif f.type == "radio" or f.type == "checkboxes" %}
+  <fieldset class="form-choices">
+    <legend>{{ f.label }}{% if f.required %} <span class="form-required">必須</span>{% endif %}</legend>
+    {%- for o in f.options %}
+    <label class="form-check">
+      <input type="{{ "radio" if f.type == "radio" else "checkbox" }}" name="{{ f.name }}" value="{{ o }}"{% if f.required and f.type == "radio" %} required{% endif %}>
+      {{ o }}
+    </label>
+    {%- endfor %}
+    {%- if f.type == "radio" and not f.required %}
+    <button type="button" class="form-clear" data-zwa-clear hidden>選択を外す</button>
+    {%- endif %}
+  </fieldset>
+  {%- elif f.type == "select" %}
+  <label class="form-field">
+    <span>{{ f.label }}{% if f.required %} <span class="form-required">必須</span>{% endif %}</span>
+    <select name="{{ f.name }}"{% if f.required %} required{% endif %}>
+      <option value="">選択してください</option>
+      {%- for o in f.options %}
+      <option value="{{ o }}">{{ o }}</option>
+      {%- endfor %}
+    </select>
+  </label>
+  {%- else %}
+  <label class="form-field">
+    <span>{{ f.label }}{% if f.required %} <span class="form-required">必須</span>{% endif %}</span>
+    {%- if f.type == "textarea" %}
+    <textarea name="{{ f.name }}" rows="6" maxlength="{{ f.max }}"{% if f.required %} required{% endif %}></textarea>
+    {%- else %}
+    <input type="{{ f.type }}" name="{{ f.name }}" maxlength="{{ f.max }}"
+      {%- if f.type == "email" %} autocomplete="email"{% elif f.type == "tel" %} autocomplete="tel"{% endif %}
+      {%- if f.required %} required{% endif %}>
+    {%- endif %}
+  </label>
+  {%- endif %}
+  {%- endfor %}
+  {#- Left empty by people (hidden), filled in by naive bots. #}
+  <div class="form-hp" aria-hidden="true">
+    <label>この欄は空のままにしてください <input type="text" name="_zwa_hp" tabindex="-1" autocomplete="off"></label>
+  </div>
+  <div class="cf-turnstile" data-sitekey="{{ form.sitekey }}"></div>
+  <button type="submit">{{ form.submit_label }}</button>
+  <p class="form-status" role="status"></p>
+</form>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<script src="{{ asset("zwa-form.js") }}" defer></script>

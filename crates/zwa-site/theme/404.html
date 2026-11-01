@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}ページが見つかりません | {{ site.title }}{% endblock %}
+{% block content %}
+<div class="not-found">
+  <p class="not-found-code">404</p>
+  <h1>ページが見つかりません</h1>
+  <p>お探しのページは移動または削除された可能性があります。</p>
+  <p><a class="button" href="/">トップページへ</a>{% if site.search %} <a class="button button-secondary" href="/search/">サイト内を検索</a>{% endif %}</p>
+</div>
+{% endblock %}
